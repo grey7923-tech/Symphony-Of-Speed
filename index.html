@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Symphony of Speed</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:#050e1a}
+body{font-family:'DM Sans',sans-serif;color:#c8dff0;-webkit-font-smoothing:antialiased}
+input,textarea,button,select{font-family:'DM Sans',sans-serif}
+::-webkit-scrollbar{display:none}
+#app{max-width:480px;margin:0 auto;min-height:100vh}
+.page{min-height:100vh}
+.scroll{overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:110px}
+.topbar{background:#071628;border-bottom:1px solid #0e2640;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+.card{background:#071628;border:1px solid #0e2640;border-radius:16px;padding:16px 14px;margin-bottom:12px}
+.btn{display:block;width:100%;border:none;border-radius:14px;padding:14px 16px;font-weight:700;font-size:16px;cursor:pointer;text-align:center;font-family:inherit}
+.btn:active{opacity:.75}
+.btn-blue{background:#2E75B6;color:#fff}
+.btn-green{background:#1E8449;color:#fff}
+.btn-red{background:#C0392B;color:#fff}
+.btn-orange{background:#D35400;color:#fff}
+.btn-ghost{background:#0d1f30;color:#c8dff0;border:1px solid #1e3a55}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.inp{width:100%;background:#0d1f30;border:1px solid #1e3a55;border-radius:10px;padding:12px 14px;color:#c8dff0;font-size:16px;font-weight:600;outline:none;font-family:inherit}
+.inp:focus{border-color:#2E75B6}
+.lbl{color:#6b8fa8;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;display:block;margin-bottom:6px}
+.sec{padding:14px}
+.slbl{font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#6b8fa8;margin-bottom:10px}
+.navbar{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:#071628;border-top:1px solid #0e2640;display:flex;padding:8px 0 20px;z-index:200}
+.nbtn{flex:1;background:none;border:none;cursor:pointer;padding:6px 0;display:flex;flex-direction:column;align-items:center;gap:3px;font-family:inherit}
+.modal-bg{position:fixed;inset:0;background:#000c;z-index:300;display:flex;align-items:flex-end;justify-content:center}
+.modal{background:#071628;border-radius:20px 20px 0 0;border-top:1px solid #0e2640;width:100%;max-width:480px;padding:20px 16px 40px;max-height:88vh;overflow-y:auto}
+.mbar{width:40px;height:4px;background:#1e3a55;border-radius:2px;margin:0 auto 18px}
+.tag{border-radius:8px;padding:4px 10px;font-size:12px;font-weight:600;display:inline-block}
+.tile{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:8px;font-size:11px;font-weight:700;margin:2px;border:2px solid}
+.ibtn{background:none;border:none;cursor:pointer;padding:4px;color:#3a5570;font-size:20px}
+.dot{width:28px;height:28px;border-radius:50%;border:2px solid transparent;cursor:pointer;display:inline-block}
+.dot.sel{border-color:#fff;transform:scale(1.15)}
+.spin{display:inline-block;width:18px;height:18px;border:2px solid #1e3a55;border-top-color:#2E75B6;border-radius:50%;animation:sp .7s linear infinite;vertical-align:middle}
+@keyframes sp{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div id="app">
+  <div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:14px">
+    <div style="font-size:52px">🏃</div>
+    <div style="color:#2E75B6;font-weight:800;font-size:20px;letter-spacing:2px">SYMPHONY OF SPEED</div>
+    <div class="spin"></div>
+  </div>
+</div>
+
+<script>
+const SURL='https://xbnixotnatkwycqmukwg.supabase.co';
+const SKEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhibml4b3RuYXRrd3ljcW11a3dnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzczMDMxMTUsImV4cCI6MjA5Mjg3OTExNX0.a6qlQhjeo66RJb9kd0yH3FxXzyBXHhZMK9R_awecHg8';
+const sb=supabase.createClient(SURL,SKEY);
+
+// ── CONSTANTS ─────────────────────────────────────────────────────────────────
+const PHASES=[
+  {id:'foundation',label:'Foundation',weeks:'1–12',color:'#2E75B6',desc:'Movement literacy, core, decel basics. NO max velocity.'},
+  {id:'force',label:'Force',weeks:'13–24',color:'#1E8449',desc:'Strength-to-weight, sled work, bounding.'},
+  {id:'speed',label:'Speed',weeks:'25–36',color:'#D35400',desc:'Max velocity, fly runs, reactive COD.'},
+  {id:'peak',label:'Peak',weeks:'37–52',color:'#6C3483',desc:'Game speed, open-chain agility, competition prep.'},
+];
+const SPORTS=['Basketball','Track','Football','Soccer','Volleyball','Baseball','Softball','General'];
+const COLORS=['#2E75B6','#1E8449','#C0392B','#6C3483','#D35400','#B7950B','#1A5276','#117A65','#784212'];
+const ST={train:{e:'🟢',l:'TRAIN',c:'#1E8449',bg:'#0d2418'},adjust:{e:'🟡',l:'ADJUST',c:'#B7950B',bg:'#251c00'},flush:{e:'🔴',l:'FLUSH',c:'#C0392B',bg:'#220808'}};
+const TESTS=[
+  {k:'sprint10m',icon:'⚡',label:'10m Sprint',unit:'sec',ph:'1.95',how:'Mark 10m on flat ground. Time from first movement. Best of 3.',ref:'Youth: under 2.1s | HS: under 1.9s'},
+  {k:'broadJump',icon:'📏',label:'Broad Jump',unit:'cm',ph:'175',how:'Stand behind line. Jump forward. Measure to back of heel. Best of 3.',ref:'Youth: 150–180cm | HS: 180–210cm'},
+  {k:'vertJump',icon:'🔼',label:'Vertical Jump',unit:'in',ph:'22',how:'Mark standing reach. Jump and mark peak. Measure difference. Best of 3.',ref:'Youth: 20–24in | HS: 24–28in'},
+  {k:'chinUps',icon:'💪',label:'Chin-Ups',unit:'reps',ph:'8',how:'Palms facing you. Dead hang. Chin clears bar. Max reps.',ref:'Youth male: 5–10 | Youth female: 3–5'},
+  {k:'bodyweight',icon:'⚖️',label:'Bodyweight',unit:'lbs',ph:'130',how:'Morning weight before eating. Same clothing each time.',ref:'Track weekly for strength-to-weight ratio.'},
+  {k:'reactAgility',icon:'🎯',label:'Reactive Agility',unit:'sec',ph:'0.85',how:'SwitchedOn app. Diamond 5 yards. Colors R/B/G/Y. Touch transition. 8 rounds. Record avg.',ref:'Youth: 0.90–1.10s | HS: 0.75–0.90s'},
+];
+const CAPS={foundation:6,force:8,speed:10,peak:10};
+const WU=[
+  {title:'Phase 1 — Prep',color:'#2E75B6',time:'5–8 min',items:['Ankle, knee, hip circles','Foam roll posterior chain — 2 min','McGill Big 3: Curl-Up, Side Plank, Bird Dog','Clamshell — 15 reps per side']},
+  {title:'Phase 2 — General ADW',color:'#1E8449',time:'6–8 min',items:['Half Jacks — 15','Full Jacks — 15','Forward Skip — 2×20 yards','Straight-Leg Shuffle Bound — 2×20 yards']},
+  {title:'Phase 3 — Speed ADW',color:'#D35400',time:'4–6 min',items:['A-Skip — 2×20 yards','A-Walk Triple Extension — 2×10 yards','Progressive buildups 70%→80%→90%']},
+];
+const CD=['Light jog — 2 min','Foam roll posterior chain — 2 min','Hip flexor stretch — 30 sec/side','Hamstring stretch — 30 sec/side','10 deep breaths'];
+const SESS={
+  foundation:{
+    1:{block:'Movement Basics',cue:'Push the ground back',note:'Form only. No timing pressure.',drills:['A-Walk — 2×10 yards','Half Jacks — 2×15','Wall Drive Plank — 2×20 sec','Sprint 10m — 4 reps','Snap Down — 2×6']},
+    2:{block:'Acceleration Intro',cue:'Open the switchblade',note:'First rep should be fastest.',drills:['A-Skip — 2×20 yards','Feet-Exchange Wall Drive — 2×4/leg','Sprint 10m — 5 reps','Snap Down — 3×6','Side Shuffle + Hold — 2×6']},
+    3:{block:'Accel + Decel',cue:'Push back / Sit hips back',note:'Stop at first sign of fatigue.',drills:['A-Skip — 2×20 yards','Sprint 15m — 4 reps','Snap Down — 3×6','Side Shuffle + Hold — 3×6','Broad Jump — 2×4']},
+    4:{block:'Deload Week',cue:'Stay smooth and light',note:'Easy week. Do NOT add volume.',drills:['A-Walk — 2×15 yards','Half Jacks — 2×10','Snap Down — 2×5']},
+  },
+  force:{
+    1:{block:'Accel + Strength',cue:'Drive the ground',note:'90 sec rest between sprints.',drills:['Snap Down — 3×6','Sprint 20m — 4 reps','Split Squat Hold — 3×20 sec/leg','Lateral Jump — 2×10']},
+    2:{block:'Accel + Bound',cue:'Explode forward',note:'Forefoot landing only.',drills:['Snap Down — 3×6','Sprint 20m — 5 reps','Broad Jump — 3×4','Speed Skater — 2×12']},
+    3:{block:'Full Accel + COD',cue:'Push + sink + go',note:'Watch for knee collapse.',drills:['Snap Down — 3×6','Sprint 25m — 4 reps','Speed Skater Bound — 3×4/side','Drop Step — 2×8/side']},
+    4:{block:'Deload Week',cue:'Stay light',note:'Easy week.',drills:['Sprint 10m — 3 reps easy','A-Skip — 2×20 yards','Snap Down — 2×5']},
+  },
+  speed:{
+    1:{block:'Max Velocity Intro',cue:'Run tall and smooth',note:'Mechanics over speed.',drills:['Snap Down — 3×6','Sprint 20m — 4 reps','Straight-Leg Bound — 2×20 yards','Fly 10m — 3 reps']},
+    2:{block:'Speed + COD',cue:'Tall / Open hips',note:'Fly runs only if mechanics are solid.',drills:['Snap Down — 3×6','Fly 10m — 4 reps','Drop Step — 3×8/side','Lateral Jump — 3×10']},
+    3:{block:'Speed + Reactive',cue:'Read and react',note:'Reactive only if full GREEN.',drills:['Snap Down — 3×6','Fly 10m — 4 reps','Command Combo — 2×8 signals','Speed Skater Bound — 3×4/side']},
+    4:{block:'Deload Week',cue:'Fresh and light',note:'Rest week.',drills:['Sprint 10m — 3 reps easy','A-Skip — 2×20 yards','Snap Down — 2×5']},
+  },
+  peak:{
+    1:{block:'Game Speed',cue:'Read and go',note:'Game-like. Make it fun.',drills:['Snap Down — 3×6','Sprint 20m — 4 reps','Command Combo — 3×8 signals','Drop Step — 3×8/side']},
+    2:{block:'Reactive + Accel',cue:'React first, run second',note:'Short, sharp, quality reps.',drills:['Snap Down — 3×6','Sprint 25m — 4 reps','Command Combo — 3×10 signals','Speed Skater Bound — 3×4/side']},
+    3:{block:'Full Peak',cue:'Max quality, low volume',note:'Fresh beats volume here.',drills:['Snap Down — 2×5','Sprint 20m — 3 reps','Command Combo — 3×10','Drop Step — 2×8/side']},
+    4:{block:'Pre-Comp Deload',cue:'Fresh and sharp',note:'Prep week.',drills:['Sprint 10m — 3 reps easy','Snap Down — 2×5','A-Skip — 2×20 yards']},
+  },
+};
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+const S={
+  user:null, coach:null, teams:[], view:'loading',
+  teamId:null, athId:null,
+  step:'ready', sc:{sleep:null,legs:null,knees:null},
+  lv:{sprint10m:'',broadJump:'',vertJump:'',chinUps:'',bodyweight:'',reactAgility:'',notes:''},
+  bv:{sprint10m:'',broadJump:'',vertJump:'',chinUps:'',bodyweight:'',reactAgility:''},
+  sprints:0, coachNote:'', listening:false,
+  modal:null, mdata:{},
+  newTeamName:'', newTeamColor:'#2E75B6',
+  newAthName:'', newAthAge:'', newAthSex:'male', newAthSport:'Basketball', newAthPos:'',
+  openTest:null, aiPrompt:'', aiResult:null, aiLoading:false,
+  chartMetric:'sprint10m', syncing:false,
+};
+
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+const uid=()=>Math.random().toString(36).slice(2,9);
+const fmt=iso=>new Date(iso).toLocaleDateString('en-US',{month:'short',day:'numeric'});
+const team=()=>S.teams.find(t=>t.id===S.teamId);
+const ath=()=>team()?.athletes?.find(a=>a.id===S.athId);
+const ph=id=>PHASES.find(p=>p.id===id);
+const sess=()=>{const a=ath();if(!a)return null;const p=SESS[a.phase_id];if(!p)return null;const b=p[Math.min(Math.max(a.week_in_cycle,1),4)]||p[1];return a.in_season?{...b,drills:b.drills.filter(d=>!d.toLowerCase().includes('fly')),note:(b.note||'')+' [IN-SEASON: Vol −30%]'}:b;};
+const total=()=>(S.sc.sleep??0)+(S.sc.legs??0)+(S.sc.knees??0);
+const readState=()=>{if(S.sc.sleep===null||S.sc.legs===null||S.sc.knees===null)return null;const t=total();return t>=5?'train':t>=3?'adjust':'flush';};
+
+function R(){document.getElementById('app').innerHTML=render();}
+
+// ── DB HELPERS ────────────────────────────────────────────────────────────────
+async function loadAll(){
+  if(!S.user)return;
+  S.syncing=true;
+  // Timeout — if loading takes more than 10 seconds show what we have
+  const loadTimeout=setTimeout(()=>{
+    S.syncing=false;
+    if(S.view==='loading'){S.view='home';R();}
+  },10000);
+  try{
+    const{data:coach}=await sb.from('coaches').select('*').eq('user_id',S.user.id).single();
+    if(!coach){S.view='setup';R();return;}
+    S.coach=coach;
+    const{data:teams}=await sb.from('teams').select('*').eq('coach_id',coach.id).order('created_at');
+    S.teams=await Promise.all((teams||[]).map(async t=>{
+      const[{data:athletes}]=await Promise.all([sb.from('athletes').select('*').eq('team_id',t.id).order('created_at')]);
+      const full=await Promise.all((athletes||[]).map(async a=>{
+        const[{data:sessions},{data:obs},{data:injuries}]=await Promise.all([
+          sb.from('sessions').select('*').eq('athlete_id',a.id).order('created_at'),
+          sb.from('coach_observations').select('*').eq('athlete_id',a.id).order('created_at'),
+          sb.from('injury_log').select('*').eq('athlete_id',a.id).order('created_at'),
+        ]);
+        return{...a,sessions:sessions||[],coachObs:obs||[],injuries:injuries||[]};
+      }));
+      return{...t,athletes:full};
+    }));
+    S.teams=fullTeams;
+    S.view='home';
+    clearTimeout(loadTimeout);
+  }catch(e){console.error(e);clearTimeout(loadTimeout);}
+  S.syncing=false;R();
+}
+
+async function dbSaveAth(a){
+  await sb.from('athletes').upsert({
+    id:a.id,team_id:a.team_id||S.teamId,
+    name:a.name,sport:a.sport,age:a.age,sex:a.sex,position:a.position,
+    phase_id:a.phase_id,week_in_cycle:a.week_in_cycle,phase_week:a.phase_week,
+    baseline_done:a.baseline_done,in_season:a.in_season||false,
+    reactive_level:a.reactive_level||1,
+    baselines:a.baselines||{},intake:a.intake||{done:false},pkg:a.pkg||{purchased:0,used:0},
+  });
+}
+
+async function dbSaveSess(athId,e){
+  await sb.from('sessions').insert({
+    athlete_id:athId,date:e.date,phase:e.phase,week:e.week,phase_week:e.phase_week,
+    state:e.state,score:e.score,block:e.block,sprint_reps:e.sprint_reps||0,
+    reactive_level:e.reactive_level||1,vals:e.vals||{},
+  });
+}
+
+function patchAth(obj){
+  S.teams=S.teams.map(t=>t.id!==S.teamId?t:{...t,athletes:t.athletes.map(a=>a.id!==S.athId?a:{...a,...obj})});
+}
+
+// ── SIGN IN / UP ──────────────────────────────────────────────────────────────
+async function doSignIn(){
+  const e=v('si_email'),p=v('si_pw');
+  if(!e||!p)return alert('Enter email and password.');
+  const{error}=await sb.auth.signInWithPassword({email:e,password:p});
+  if(error)return alert('Sign in failed: '+error.message);
+}
+async function doSignUp(){
+  const e=v('su_email'),p=v('su_pw'),n=v('su_name'),o=v('su_org');
+  if(!e||!p||!n||!o)return alert('Fill in all fields.');
+  if(p.length<6)return alert('Password must be at least 6 characters.');
+  const{data,error}=await sb.auth.signUp({email:e,password:p});
+  if(error)return alert('Sign up failed: '+error.message);
+  await sb.from('coaches').insert({user_id:data.user.id,name:n,org_name:o,org_color:'#2E75B6',tagline:''});
+  alert('Account created! Check your email to confirm, then sign in.');
+  S.view='login';R();
+}
+async function doSignOut(){await sb.auth.signOut();}
+
+// ── ACTION HANDLERS ───────────────────────────────────────────────────────────
+function v(id){return document.getElementById(id)?.value?.trim();}
+
+async function createTeam(){
+  const name=v('nt_name');if(!name)return;
+  const btn=document.querySelector('#modalContainer .btn-blue');
+  if(btn){btn.disabled=true;btn.textContent='Creating...';}
+  const{data,error}=await sb.from('teams').insert({coach_id:S.coach.id,name,color:S.newTeamColor}).select().single();
+  if(error){alert('Error: '+error.message);if(btn){btn.disabled=false;btn.textContent='Create Team';}return;}
+  S.teams=[...S.teams,{...data,athletes:[]}];
+  closeModal(false);
+  R();
+}
+
+async function createAth(){
+  const name=v('na_name');if(!name)return;
+  // Get team - either active team or first team
+  let t=team();
+  if(!t&&S.teams.length>0)t=S.teams[0];
+  if(!t){alert('No team found. Please create a team first.');return;}
+  // Disable button to prevent double taps
+  const btn=document.querySelector('#modalContainer .btn-blue');
+  if(btn){btn.disabled=true;btn.textContent='Saving...';}
+  const{data,error}=await sb.from('athletes').insert({
+    team_id:t.id,name,sport:S.newAthSport||'Basketball',
+    age:v('na_age')||'',sex:S.newAthSex||'male',position:v('na_pos')||'',
+    phase_id:'foundation',week_in_cycle:1,phase_week:1,
+    baseline_done:false,in_season:false,reactive_level:1,
+    baselines:{sprint10m:'',broadJump:'',vertJump:'',chinUps:'',bodyweight:'',reactAgility:''},
+    intake:{done:false},pkg:{purchased:0,used:0},
+  }).select().single();
+  if(error){alert('Error: '+error.message);if(btn){btn.disabled=false;btn.textContent='Add Athlete';}return;}
+  const newA={...data,sessions:[],coachObs:[],injuries:[]};
+  S.teams=S.teams.map(t2=>t2.id!==t.id?t2:{...t2,athletes:[...t2.athletes,newA]});
+  closeModal(false);
+  R();
+}
+  const{data,error}=await sb.from('athletes').insert({
+    team_id:t.id,name,sport:S.newAthSport||'Basketball',
+    age:v('na_age')||'',sex:S.newAthSex||'male',position:v('na_pos')||'',
+    phase_id:'foundation',week_in_cycle:1,phase_week:1,
+    baseline_done:false,in_season:false,reactive_level:1,
+    baselines:{sprint10m:'',broadJump:'',vertJump:'',chinUps:'',bodyweight:'',reactAgility:''},
+    intake:{done:false},pkg:{purchased:0,used:0},
+  }).select().single();
+  if(error){alert('Error: '+error.message);if(btn){btn.disabled=false;btn.textContent='Add Athlete';}return;}
+  const newA={...data,sessions:[],coachObs:[],injuries:[]};
+  S.teams=S.teams.map(t2=>t2.id!==t.id?t2:{...t2,athletes:[...t2.athletes,newA]});
+  closeModal(false);
+}
+
+async function saveBaseline(){
+  const a=ath();if(!a)return;
+  const allFilled=TESTS.every(t=>S.bv[t.k]&&S.bv[t.k].toString().trim()!=='');
+  if(!allFilled)return alert('Fill in all 6 tests first.');
+  const btn=document.querySelector('.btn-green');
+  if(btn){btn.disabled=true;btn.textContent='Saving...';}
+  patchAth({baselines:{...S.bv},baseline_done:true});
+  await dbSaveAth({...ath()});
+  S.view='ath';R();
+}
+
+async function logSession(){
+  const a=ath();if(!a)return;
+  const s2=sess();
+  // Prevent double tap
+  const btn=document.querySelector('.btn-blue');
+  if(btn){btn.disabled=true;btn.textContent='Saving...';}
+  const entry={date:new Date().toISOString(),phase:a.phase_id,week:a.week_in_cycle,phase_week:a.phase_week,state:readState(),score:total(),block:s2?.block||'',sprint_reps:S.sprints,reactive_level:a.reactive_level||1,vals:{...S.lv}};
+  const nw=a.week_in_cycle>=4?1:a.week_in_cycle+1;
+  patchAth({sessions:[...a.sessions,{...entry,id:uid(),created_at:entry.date}],week_in_cycle:nw,phase_week:a.phase_week+1});
+  await dbSaveSess(a.id,entry);
+  await dbSaveAth({...ath(),week_in_cycle:nw,phase_week:a.phase_week+1});
+  if(S.coachNote.trim()){
+    const obs={created_at:new Date().toISOString(),note:S.coachNote,phase:a.phase_id,week:a.week_in_cycle};
+    await sb.from('coach_observations').insert({athlete_id:a.id,note:S.coachNote,phase:a.phase_id,week:a.week_in_cycle});
+    patchAth({coachObs:[...a.coachObs,obs]});
+  }
+  S.sprints=0;S.coachNote='';S.step='done';R();
+}
+
+async function logFlush(){
+  const a=ath();if(!a)return;
+  const btn=document.querySelector('.btn-red');
+  if(btn){btn.disabled=true;btn.textContent='Saving...';}
+  const entry={date:new Date().toISOString(),phase:a.phase_id,week:a.week_in_cycle,phase_week:a.phase_week,state:'flush',score:total(),block:'Recovery',sprint_reps:0,reactive_level:1,vals:{}};
+  patchAth({sessions:[...a.sessions,{...entry,id:uid(),created_at:entry.date}]});
+  await dbSaveSess(a.id,entry);
+  S.view='ath';R();
+}
+
+async function toggleInSeason(){
+  const a=ath();if(!a)return;
+  // Optimistic update - update UI immediately then save
+  const newVal=!a.in_season;
+  patchAth({in_season:newVal});
+  R();
+  await dbSaveAth({...ath()});
+}
+
+async function updatePhase(phaseId){
+  patchAth({phase_id:phaseId,week_in_cycle:1,phase_week:1});
+  R();
+  await dbSaveAth({...ath(),phase_id:phaseId,week_in_cycle:1,phase_week:1});
+}
+
+async function logInjury(){
+  const a=ath();if(!a)return;
+  const body=v('inj_body');if(!body)return;
+  const pain=parseInt(document.getElementById('inj_pain')?.value||'5');
+  const notes=v('inj_notes')||'';
+  const btn=document.querySelector('#modalContainer .btn-red');
+  if(btn){btn.disabled=true;btn.textContent='Saving...';}
+  const{data,error}=await sb.from('injury_log').insert({athlete_id:a.id,body_part:body,pain_level:pain,notes,phase:a.phase_id}).select().single();
+  if(error){alert('Error: '+error.message);if(btn){btn.disabled=false;btn.textContent='Log Injury';}return;}
+  patchAth({injuries:[...(a.injuries||[]),data]});
+  closeModal(false);
+  R();
+}
+
+function startVoice(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR)return alert('Voice not supported. Try Chrome.');
+  const r=new SR();r.continuous=false;r.interimResults=false;r.lang='en-US';
+  r.onstart=()=>{S.listening=true;R();};
+  r.onend=()=>{S.listening=false;R();};
+  r.onresult=e=>{S.coachNote=(S.coachNote?S.coachNote+' ':'')+e.results[0][0].transcript;R();};
+  r.onerror=()=>{S.listening=false;R();};r.start();
+}
+
+async function genAI(){
+  const a=ath();if(!a)return;
+  const p2=ph(a.phase_id);
+  S.aiLoading=true;S.aiResult=null;R();
+  try{
+    const prompt=`You are the Symphony of Speed v21.0 AI coach. Generate a custom training session.\n\nATHLETE: ${a.name}, Age ${a.age||'?'}, ${a.sport}, ${p2?.label} Phase Week ${a.week_in_cycle}/4\nBASELINES: 10m ${(a.baselines||{}).sprint10m||'?'}s, Broad ${(a.baselines||{}).broadJump||'?'}cm, Chin-Ups ${(a.baselines||{}).chinUps||'?'}\nIN-SEASON: ${a.in_season?'Yes - reduce vol 30%, no fly runs':'No'}\nCONTEXT: ${S.aiPrompt}\n\nWrite a complete session with warm-up, numbered drills with sets/reps/rest, one key cue, and coach rationale. Be specific and practical.`;
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:800,messages:[{role:'user',content:prompt}]})});
+    const d=await res.json();
+    S.aiResult=d.content?.map(c=>c.text||'').join('')||'Could not generate.';
+  }catch(e){S.aiResult='Error connecting to AI.';}
+  S.aiLoading=false;R();
+}
+
+function shareText(title,text){
+  if(navigator.share)navigator.share({title,text});
+  else{const el=document.createElement('textarea');el.value=text;document.body.appendChild(el);el.select();document.execCommand('copy');document.body.removeChild(el);alert('Copied to clipboard!');}
+}
+
+// ── RENDER ────────────────────────────────────────────────────────────────────
+function render(){
+  const v2=S.view,a=ath(),t=team(),p=a?ph(a.phase_id):null,s2=sess();
+  const rs=readState(),si=rs?ST[rs]:null,cp=S.coach;
+
+  if(v2==='loading') return`<div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:14px"><div style="font-size:52px">🏃</div><div style="color:#2E75B6;font-weight:800;font-size:20px;letter-spacing:2px">SYMPHONY OF SPEED</div><div class="spin"></div></div>`;
+
+  if(v2==='login') return`<div class="page"><div class="scroll" style="padding-bottom:40px"><div style="padding:60px 22px 30px;text-align:center"><div style="font-size:56px;margin-bottom:12px">🏃</div><div style="font-weight:800;font-size:24px;color:#2E75B6;letter-spacing:2px;margin-bottom:4px">SYMPHONY OF SPEED</div><div style="color:#3a5570;font-size:13px;margin-bottom:36px">v21.0 · Cloud Platform</div><div class="card" style="text-align:left"><div class="lbl">Email</div><input class="inp" id="si_email" type="email" placeholder="coach@email.com" style="margin-bottom:12px"/><div class="lbl">Password</div><div style="position:relative;margin-bottom:20px"><input class="inp" id="si_pw" type="password" placeholder="••••••••" style="padding-right:50px"/><button onclick="var i=document.getElementById('si_pw');i.type=i.type==='password'?'text':'password';this.textContent=i.type==='password'?'👁':'🙈'" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:18px;color:#6b8fa8">👁</button></div><button class="btn btn-blue" style="margin-bottom:10px" onclick="doSignIn()">Sign In</button><button class="btn btn-ghost" onclick="S.view='signup';R()">Create Account →</button></div></div></div></div>`;
+
+  if(v2==='signup') return`<div class="page"><div class="scroll" style="padding-bottom:40px"><div style="padding:40px 22px 30px;text-align:center"><div style="font-weight:800;font-size:22px;margin-bottom:4px">Create Account</div><div style="color:#3a5570;font-size:13px;margin-bottom:24px">Set up your coaching profile</div><div class="card" style="text-align:left"><div class="lbl">Email *</div><input class="inp" id="su_email" type="email" placeholder="coach@email.com" style="margin-bottom:10px"/><div class="lbl">Password * (min 6 chars)</div><div style="position:relative;margin-bottom:10px"><input class="inp" id="su_pw" type="password" placeholder="••••••••" style="padding-right:50px"/><button onclick="var i=document.getElementById('su_pw');i.type=i.type==='password'?'text':'password';this.textContent=i.type==='password'?'👁':'🙈'" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:18px;color:#6b8fa8">👁</button></div><div class="lbl">Your Name *</div><input class="inp" id="su_name" placeholder="Coach Randy" style="margin-bottom:10px"/><div class="lbl">Organization / Program *</div><input class="inp" id="su_org" placeholder="Power Ahead Colorado" style="margin-bottom:20px"/><button class="btn btn-green" style="margin-bottom:10px" onclick="doSignUp()">Create Account</button><button class="btn btn-ghost" onclick="S.view='login';R()">← Back to Sign In</button></div></div></div></div>`;
+
+  if(v2==='home'){
+    const allA=S.teams.flatMap(t2=>(t2.athletes||[]));
+    return`<div class="page"><div class="topbar"><div><div style="font-weight:800;font-size:17px;color:${cp?.org_color||'#2E75B6'}">${cp?.org_name||'Symphony of Speed'}</div>${cp?.tagline?`<div style="color:#3a5570;font-size:10px">${cp.tagline}</div>`:''}</div><div style="display:flex;gap:8px;align-items:center"><span style="width:8px;height:8px;border-radius:50%;background:${S.syncing?'#B7950B':'#1E8449'};display:inline-block"></span><button class="btn btn-blue" style="width:auto;padding:8px 13px;font-size:13px" onclick="S.modal='addTeam';S.newTeamColor='#2E75B6';renderModal()">+ Team</button><button class="ibtn" onclick="S.view='profile';R()">👤</button></div></div><div class="scroll"><div class="sec"><div style="color:#3a5570;font-size:12px;margin-bottom:14px">Welcome, ${cp?.name||'Coach'} · ${S.teams.length} teams · ${allA.length} athletes · ☁️ Cloud</div>${S.teams.length===0?`<div class="card" style="text-align:center;padding:40px 20px"><div style="font-size:48px;margin-bottom:12px">🏃</div><div style="font-weight:700;font-size:18px;margin-bottom:16px">No Teams Yet</div><button class="btn btn-blue" onclick="S.modal='addTeam';S.newTeamColor='#2E75B6';renderModal()">+ Create First Team</button></div>`:S.teams.map(t2=>`<div class="card" style="cursor:pointer;border-color:${t2.color}44" onclick="S.teamId='${t2.id}';S.view='team';R()"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:${(t2.athletes||[]).length>0?10:0}px"><div style="display:flex;align-items:center;gap:10px"><div style="width:12px;height:12px;border-radius:50%;background:${t2.color}"></div><div><div style="font-weight:800;font-size:18px">${t2.name}</div><div style="color:#6b8fa8;font-size:12px">${(t2.athletes||[]).length} athlete${(t2.athletes||[]).length!==1?'s':''}</div></div></div><div style="color:${t2.color};font-size:18px">→</div></div>${(t2.athletes||[]).slice(0,4).map(a2=>{const last2=(a2.sessions||[])[a2.sessions.length-1];const sc2=last2?ST[last2.state]:null;return`<span class="tag" style="background:#0a1a2a;color:${sc2?sc2.c:'#3a5570'};margin-right:5px;margin-bottom:4px">${a2.name}${sc2?' '+sc2.e:''}</span>`;}).join('')}</div>`).join('')}</div></div>${navbar('home')}${renderModal()}</div>`;
+  }
+
+  if(v2==='team'&&t){
+    return`<div class="page"><div class="topbar"><button class="ibtn" onclick="S.view='home';R()">←</button><div style="font-weight:800;font-size:18px">${t.name}</div><div style="display:flex;gap:4px"><button class="ibtn" style="color:#2E75B6;font-size:24px;font-weight:700" onclick="S.modal='addAth';S.newAthSex='male';S.newAthSport='Basketball';renderModal()">+</button></div></div><div class="scroll"><div class="sec">${(t.athletes||[]).length===0?`<div class="card" style="text-align:center;padding:40px 20px"><div style="font-size:48px;margin-bottom:12px">👤</div><div style="font-weight:700;font-size:18px;margin-bottom:16px">No Athletes Yet</div><button class="btn btn-blue" onclick="S.modal='addAth';S.newAthSex='male';S.newAthSport='Basketball';renderModal()">+ Add Athlete</button></div>`:(t.athletes||[]).map(a2=>{const p2=ph(a2.phase_id);const last2=(a2.sessions||[])[a2.sessions.length-1];const sc2=last2?ST[last2.state]:null;return`<div class="card" style="cursor:pointer;border-color:${t.color}33" onclick="openAth('${t.id}','${a2.id}')"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px"><div><div style="font-weight:800;font-size:18px">${a2.name}</div><div style="color:#6b8fa8;font-size:12px">${a2.sport}${a2.age?` · Age ${a2.age}`:''}${a2.position?` · ${a2.position}`:''}</div>${!a2.baseline_done?'<div style="color:#D35400;font-size:11px;margin-top:3px;font-weight:600">⚠️ Baseline needed</div>':''}</div><div style="background:${p2.color}22;border:1px solid ${p2.color}55;border-radius:10px;padding:6px 12px;text-align:center"><div style="color:${p2.color};font-weight:700;font-size:12px">${p2.label}</div><div style="color:#6b8fa8;font-size:11px">Wk ${a2.phase_week}</div></div></div><div class="g2"><div style="background:#0a1a2a;border-radius:10px;padding:8px 12px"><div style="color:#3a5570;font-size:11px;margin-bottom:2px">Sessions</div><div style="font-weight:700;font-size:15px">${(a2.sessions||[]).length}</div></div><div style="background:#0a1a2a;border-radius:10px;padding:8px 12px"><div style="color:#3a5570;font-size:11px;margin-bottom:2px">Last</div><div style="font-weight:700;font-size:15px;color:${sc2?sc2.c:'#3a5570'}">${sc2?sc2.e+' '+sc2.l:'—'}</div></div></div></div>`;}).join('')}${(t.athletes||[]).length>0?`<button class="btn btn-blue" style="margin-top:4px" onclick="S.modal='addAth';S.newAthSex='male';S.newAthSport='Basketball';renderModal()">+ Add Athlete</button>`:''}</div></div>${navbar('home')}${renderModal()}</div>`;
+  }
+
+  if(v2==='ath'&&a){
+    const oneWkAgo=new Date();oneWkAgo.setDate(oneWkAgo.getDate()-7);
+    const wk=(a.sessions||[]).filter(s=>new Date(s.created_at)>oneWkAgo);
+    const sprints=wk.reduce((acc,s)=>acc+(s.sprint_reps||0),0);
+    const cap=CAPS[a.phase_id]||6;
+    const pct=Math.min(100,Math.round(sprints/cap*100));
+    const age=parseInt(a.age);
+    return`<div class="page"><div class="topbar"><button class="ibtn" onclick="S.view='team';R()">←</button><div style="font-weight:800;font-size:17px">${a.name}</div><button class="ibtn" onclick="S.view='settings';R()">⚙️</button></div><div class="scroll"><div class="sec"><div style="color:#6b8fa8;font-size:12px;margin-bottom:12px">${a.sport}${a.age?` · Age ${a.age}`:''}${a.position?` · ${a.position}`:''} · <span style="color:${t.color}">${t.name}</span></div>
+${!a.baseline_done?`<div class="card" style="margin-bottom:10px;border-color:#D35400;background:#180e00"><div style="color:#D35400;font-weight:800;font-size:16px;margin-bottom:8px">⚠️ Baseline Required</div><div style="color:#8899aa;font-size:14px;margin-bottom:12px">Complete all 6 tests before training.</div><button class="btn btn-orange" onclick="S.view='baseline';S.bv={...a.baselines};R()">📏 Start Baseline →</button></div>`:''}
+${!isNaN(age)&&age>=10&&age<=14?`<div class="card" style="margin-bottom:10px;border-color:#2E75B644;background:#030f1e"><div style="color:#2E75B6;font-weight:700;font-size:13px;margin-bottom:4px">📏 Growth Window — Age ${age}</div><div style="color:#8899aa;font-size:12px;line-height:1.6">Active growth window. Watch for joint pain or sudden performance drops. Reduce loading at first sign.</div></div>`:''}
+<div class="card" style="margin-bottom:10px;border-color:${a.in_season?'#D35400':'#0e2640'};background:${a.in_season?'#180e00':'#071628'}"><div style="display:flex;justify-content:space-between;align-items:center"><div><div style="font-weight:700;font-size:14px;color:${a.in_season?'#D35400':'#c8dff0'}">${a.in_season?'🏆 In-Season Mode':'🏋️ Off-Season Mode'}</div><div style="color:#8899aa;font-size:12px;margin-top:2px">${a.in_season?'Vol −30% · No fly runs':'Full volume · All drills'}</div></div><button onclick="toggleInSeason()" style="background:${a.in_season?'#D35400':'#0d1f30'};border:1px solid ${a.in_season?'#D35400':'#1e3a55'};border-radius:16px;padding:8px 14px;color:#fff;font-weight:700;font-size:13px;cursor:pointer;font-family:inherit">${a.in_season?'Off':'On'}</button></div></div>
+<div class="card" style="border-color:${p.color}55;background:${p.color}0d;margin-bottom:10px"><div style="display:flex;justify-content:space-between;align-items:center"><div><div style="color:${p.color};font-weight:800;font-size:18px">${p.label} Phase</div><div style="color:#6b8fa8;font-size:13px;margin-top:3px">Weeks ${p.weeks} · Session ${a.phase_week}</div><div style="color:#8899aa;font-size:12px;margin-top:4px;line-height:1.5">${p.desc}</div></div><div style="text-align:center;min-width:52px;margin-left:10px"><div style="color:#3a5570;font-size:10px">CYCLE</div><div style="font-weight:800;font-size:34px;color:${p.color};line-height:1">${a.week_in_cycle}</div><div style="color:#3a5570;font-size:10px">of 4</div></div></div></div>
+<div class="card" style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;margin-bottom:6px"><div style="color:#6b8fa8;font-size:12px">Sprint Reps This Week</div><div style="color:${pct>=90?'#C0392B':pct>=70?'#B7950B':'#1E8449'};font-weight:700;font-size:12px">${sprints}/${cap}</div></div><div style="background:#0d1f30;border-radius:6px;height:8px;overflow:hidden;margin-bottom:8px"><div style="width:${pct}%;height:100%;background:${pct>=90?'#C0392B':pct>=70?'#B7950B':'#1E8449'};border-radius:6px"></div></div><div class="g3" style="gap:6px">${[{l:'Sessions',v:wk.length},{l:'🟢 Green',v:wk.filter(s=>s.state==='train').length},{l:'🔴 Flush',v:wk.filter(s=>s.state==='flush').length}].map(({l,v3})=>`<div style="background:#0a1a2a;border-radius:8px;padding:8px;text-align:center"><div style="color:#3a5570;font-size:10px;margin-bottom:2px">${l}</div><div style="font-weight:700;font-size:16px">${v3}</div></div>`).join('')}</div>${pct>=90?'<div style="background:#220808;border:1px solid #C0392B44;border-radius:8px;padding:8px 12px;margin-top:10px"><div style="color:#C0392B;font-weight:700;font-size:12px">⚠️ Approaching weekly cap — reduce volume.</div></div>':''}</div>
+<div class="g2" style="margin-bottom:8px"><button class="${a.baseline_done?'btn btn-blue':'btn btn-locked'}" onclick="${a.baseline_done?'startSess()':'alert(\"Complete baseline first.\")'}">${a.baseline_done?'▶ Start Session':'🔒 Locked'}</button><button class="btn btn-ghost" onclick="S.view='log';R()">📋 Session Log</button></div>
+<div class="g2" style="margin-bottom:8px"><button class="btn" style="background:#0d1f30;color:#1E8449;border:1px solid #1E844966;font-size:13px" onclick="S.view='report';R()">📄 Progress Report</button><button class="btn" style="background:#0d1f30;color:#6C3483;border:1px solid #6C348366;font-size:13px" onclick="S.view='parent';R()">👨‍👩‍👧 Parent View</button></div>
+<div class="g2" style="margin-bottom:14px"><button class="btn" style="background:#0d1f30;color:#2E75B6;border:1px solid #2E75B666;font-size:13px" onclick="S.view='ai';S.aiResult=null;S.aiPrompt='';R()">🤖 AI Session</button><button class="btn" style="background:#0d1f30;color:#C0392B;border:1px solid #C0392B66;font-size:13px" onclick="S.modal='injury';renderModal()">🚨 Report Injury</button></div>
+${(a.sessions||[]).length>0?`<div class="slbl">RECENT READINESS</div><div style="margin-bottom:14px">${(a.sessions||[]).slice(-14).map(s=>{const sc2=ST[s.state]||ST.flush;return`<span class="tile" style="background:${sc2.bg};border-color:${sc2.c};color:${sc2.c}">${s.score}</span>`;}).join('')}</div>`:''}
+${a.baseline_done?`<div class="slbl">BASELINE VALUES</div><div class="card" style="margin-bottom:10px">${TESTS.map(t2=>`<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #0e2640"><div style="color:#6b8fa8;font-size:14px">${t2.icon} ${t2.label}</div><div style="font-weight:700;color:${(a.baselines||{})[t2.k]?'#c8dff0':'#3a5570'};font-size:14px">${(a.baselines||{})[t2.k]||'—'} ${(a.baselines||{})[t2.k]?t2.unit:''}</div></div>`).join('')}<div style="height:10px"></div><button class="btn btn-ghost" style="font-size:13px" onclick="S.view='baseline';S.bv={...(a.baselines||{})};R()">📏 Re-run Baseline</button></div>`:''}
+${(a.coachObs||[]).length>0?`<div class="slbl">COACH OBSERVATIONS</div>${[...(a.coachObs||[])].reverse().slice(0,3).map(o=>`<div class="card" style="margin-bottom:8px;border-color:#2E75B644"><div style="display:flex;justify-content:space-between;margin-bottom:4px"><div style="color:#2E75B6;font-weight:700;font-size:12px">📋 ${o.phase} · Wk ${o.week}</div><div style="color:#3a5570;font-size:11px">${fmt(o.created_at)}</div></div><div style="color:#c8dff0;font-size:13px;line-height:1.6">${o.note}</div></div>`).join('')}`:''}
+${(a.injuries||[]).length>0?`<div class="slbl">INJURY LOG</div>${[...(a.injuries||[])].reverse().slice(0,2).map(inj=>`<div class="card" style="margin-bottom:8px;border-color:#C0392B44"><div style="display:flex;justify-content:space-between;margin-bottom:4px"><div style="color:#C0392B;font-weight:700;font-size:14px">${inj.body_part}</div><div style="color:#3a5570;font-size:12px">${fmt(inj.created_at)}</div></div><div style="color:#8899aa;font-size:13px">Pain: ${inj.pain_level}/10</div>${inj.notes?`<div style="color:#8899aa;font-size:12px;margin-top:4px">${inj.notes}</div>`:''}</div>`).join('')}`:''}
+</div></div>${navbar('home')}${renderModal()}</div>`;
+  }
+
+  if(v2==='session'&&a){
+    if(S.step==='ready') return`<div class="page"><div class="topbar"><button class="ibtn" onclick="S.view='ath';R()">←</button><div style="font-weight:800;font-size:18px">Daily Readiness</div><div style="width:32px"></div></div><div class="scroll"><div class="sec"><div style="color:#6b8fa8;font-size:14px;margin-bottom:18px;line-height:1.6">Score honestly. This determines today's session.</div>${[{k:'sleep',l:'😴 Sleep Quality',o:['Under 6 hrs','6–7 hrs','8+ hrs great']},{k:'legs',l:'🦵 Leg Freshness',o:['Heavy / sore','Moderate fatigue','Fresh and light']},{k:'knees',l:'🦴 Knees & Joints',o:['Pain present','Some stiffness','No issues']}].map(({k,l,o})=>`<div class="card" style="margin-bottom:12px"><div style="font-weight:700;font-size:16px;margin-bottom:16px">${l}</div><div style="display:flex;gap:8px;justify-content:space-around">${[0,1,2].map(v3=>{const cols=['#C0392B','#B7950B','#1E8449'];const sel=S.sc[k]===v3;return`<div style="flex:1;text-align:center"><button style="width:46px;height:46px;border-radius:50%;border:2px solid ${sel?cols[v3]:'#1e3a55'};background:${sel?cols[v3]:'#0d1f30'};color:${sel?'#fff':'#3a5570'};font-size:18px;font-weight:700;cursor:pointer;display:block;margin:0 auto;box-shadow:${sel?`0 0 12px ${cols[v3]}55`:'none'}" onclick="S.sc['${k}']=${v3};R()">${v3}</button><div style="color:#3a5570;font-size:11px;margin-top:8px;line-height:1.4">${o[v3]}</div></div>`;}).join('')}</div></div>`).join('')}${rs?`<div style="background:${si.bg};border:2px solid ${si.c};border-radius:16px;padding:20px;text-align:center;margin-bottom:14px"><div style="font-size:34px">${si.e}</div><div style="color:${si.c};font-weight:800;font-size:26px;letter-spacing:2px;margin-top:8px">${si.l}</div><div style="color:#8899aa;font-size:13px;margin-top:5px">${rs==='train'?'Full session. Reactive work allowed.':rs==='adjust'?'Technical only. No max velocity.':'Recovery only. No sprinting.'}</div></div>${rs==='flush'?`<div class="card"><div style="color:#C0392B;font-weight:800;font-size:16px;margin-bottom:12px">🔴 Recovery Day</div>${['Foam roll — 5 min','Joint mobility — 5 min','McGill Big 3 easy','10 deep breaths'].map(i=>`<div style="color:#8899aa;font-size:14px;padding:8px 0;border-bottom:1px solid #0e2640">• ${i}</div>`).join('')}<div style="height:14px"></div><button class="btn btn-red" onclick="logFlush()">Log Recovery Day</button></div>`:`<button class="btn ${rs==='train'?'btn-green':'btn-yellow'}" onclick="S.step='warmup';R()">Continue to Warm-Up →</button>`}`:''}
+</div></div></div>`;
+
+    if(S.step==='warmup') return`<div class="page"><div class="topbar"><button class="ibtn" onclick="S.step='ready';R()">←</button><div style="font-weight:800;font-size:18px">Warm-Up</div><div style="color:#3a5570;font-size:12px">15–20 min</div></div><div class="scroll"><div class="sec"><div class="card" style="background:#0d2418;border-color:#1E844944;margin-bottom:14px"><div style="color:#1E8449;font-weight:700;font-size:13px">⚠️ All 3 phases required. No skipping.</div></div>${WU.map(w=>`<div class="card" style="margin-bottom:12px;border-left:3px solid ${w.color}"><div style="display:flex;justify-content:space-between;margin-bottom:10px"><div style="color:${w.color};font-weight:700;font-size:12px">${w.title}</div><div style="color:#3a5570;font-size:12px">${w.time}</div></div>${w.items.map((i,idx)=>`<div style="color:#8899aa;font-size:14px;padding:7px 0;border-bottom:${idx<w.items.length-1?'1px solid #0e2640':'none'}">• ${i}</div>`).join('')}</div>`).join('')}<button class="btn btn-blue" onclick="S.step='main';R()">Warm-Up Complete → Main Work</button></div></div></div>`;
+
+    if(S.step==='main'){const cap=CAPS[a.phase_id]||6;return`<div class="page"><div class="topbar"><button class="ibtn" onclick="S.step='warmup';R()">←</button><div style="font-weight:800;font-size:18px">Main Work</div><div style="color:#3a5570;font-size:12px">15–20 min</div></div><div class="scroll"><div class="sec"><div class="card" style="border-color:${p.color}55;background:${p.color}0d;margin-bottom:14px"><div style="color:${p.color};font-weight:700;font-size:12px;margin-bottom:4px">${p.label} · Week ${a.week_in_cycle} of 4</div><div style="font-weight:800;font-size:20px;margin-bottom:8px">${s2?.block}</div><div style="color:#6b8fa8;font-size:14px">Cue: <span style="color:#c8dff0;font-style:italic">"${s2?.cue}"</span></div></div>${rs==='adjust'?'<div class="card" style="background:#251c00;border-color:#B7950B44;margin-bottom:12px"><div style="color:#B7950B;font-weight:700">🟡 ADJUST MODE — reduce 20–30%</div></div>':''}
+<div class="card" style="margin-bottom:12px;text-align:center"><div style="color:#6b8fa8;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:12px">SPRINT REP COUNTER</div><div style="display:flex;align-items:center;justify-content:center;gap:20px"><button onclick="if(S.sprints>0){S.sprints--;R();}" style="width:44px;height:44px;border-radius:12px;background:#0d1f30;border:1px solid #1e3a55;color:#c8dff0;font-size:24px;cursor:pointer;font-weight:700;font-family:inherit">−</button><div style="font-weight:800;font-size:52px;color:#2E75B6;line-height:1;min-width:70px;text-align:center">${S.sprints}</div><button onclick="S.sprints++;R()" style="width:44px;height:44px;border-radius:12px;background:#2E75B6;border:none;color:#fff;font-size:24px;cursor:pointer;font-weight:700;font-family:inherit">+</button></div><div style="color:#3a5570;font-size:12px;margin-top:8px">Tap + after each sprint rep · Cap: ${cap}/session</div></div>
+<div class="slbl">DRILLS</div>${(s2?.drills||[]).map((d,i)=>`<div style="display:flex;align-items:flex-start;gap:10px;background:#0d1f30;border-radius:12px;padding:12px 13px;border:1px solid #1e3a55;margin-bottom:8px"><div style="min-width:24px;height:24px;border-radius:50%;background:#2E75B6;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:11px;flex-shrink:0;margin-top:1px">${i+1}</div><div style="color:#c8dff0;font-size:14px;line-height:1.5">${d}</div></div>`).join('')}${s2?.note?`<div class="card" style="background:#0a1a2a;border-color:#1e3a55;margin-bottom:12px"><div style="color:#2E75B6;font-weight:700;font-size:12px;margin-bottom:5px">📋 NOTE</div><div style="color:#8899aa;font-size:13px;line-height:1.6">${s2.note}</div></div>`:''}
+<div class="card" style="background:#220808;border-color:#C0392B44;margin-bottom:14px"><div style="color:#C0392B;font-weight:700;font-size:13px;margin-bottom:8px">🛑 EXIT RULES</div><div style="color:#8899aa;font-size:13px;line-height:1.9">• Sprint drop-off &gt;5% → stop that block<br>• Any pain → terminate session<br>• Form breakdown → reduce 30%</div></div>
+<button class="btn btn-green" onclick="S.step='cooldown';R()">Main Work Done → Cool Down</button></div></div></div>`;}
+
+    if(S.step==='cooldown') return`<div class="page"><div class="topbar"><button class="ibtn" onclick="S.step='main';R()">←</button><div style="font-weight:800;font-size:18px">Cool Down & Log</div><div style="width:32px"></div></div><div class="scroll"><div class="sec"><div class="card" style="margin-bottom:14px"><div style="color:#2E75B6;font-weight:700;font-size:13px;margin-bottom:12px">COOL DOWN — 5 min</div>${CD.map((i,idx)=>`<div style="color:#8899aa;font-size:14px;padding:7px 0;border-bottom:${idx<CD.length-1?'1px solid #0e2640':'none'}">• ${i}</div>`).join('')}</div>
+<div class="slbl">LOG TODAY'S NUMBERS</div><div class="card" style="margin-bottom:14px"><div class="g2" style="margin-bottom:14px">${TESTS.map(t2=>`<div style="display:flex;flex-direction:column;gap:5px"><label class="lbl" style="margin-bottom:0">${t2.icon} ${t2.label.split(' ')[0]}</label><input type="number" class="inp" value="${S.lv[t2.k]||''}" placeholder="${(a.baselines||{})[t2.k]||'—'}" oninput="S.lv['${t2.k}']=this.value" style="font-size:16px"/></div>`).join('')}</div>
+<div class="lbl">Athlete Notes</div><textarea class="inp" placeholder="How did it go?" oninput="S.lv.notes=this.value" style="min-height:60px;resize:vertical;font-size:14px;font-weight:400;margin-bottom:14px">${S.lv.notes||''}</textarea>
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><label class="lbl" style="margin-bottom:0">📋 Coach Observations</label><button onclick="startVoice()" style="background:${S.listening?'#C0392B':'#0d1f30'};border:1px solid ${S.listening?'#C0392B':'#2E75B644'};border-radius:8px;padding:5px 10px;color:${S.listening?'#fff':'#2E75B6'};cursor:pointer;font-size:12px;font-weight:600;font-family:inherit">${S.listening?'🔴 Listening...':'🎤 Voice'}</button></div>
+<textarea class="inp" placeholder="Mechanics notes, cues that worked..." oninput="S.coachNote=this.value" style="min-height:70px;resize:vertical;font-size:14px;font-weight:400;border-color:#2E75B644">${S.coachNote||''}</textarea></div>
+<button class="btn btn-blue" onclick="logSession()">Save Session & Advance Week →</button></div></div></div>`;
+
+    if(S.step==='done') return`<div class="page" style="display:flex;align-items:center;justify-content:center;min-height:100vh"><div style="text-align:center;padding:0 32px"><div style="font-size:72px;margin-bottom:16px">✅</div><div style="font-weight:800;font-size:28px;margin-bottom:8px">Session Saved</div><div style="color:#1E8449;font-size:14px;margin-bottom:6px">☁️ Synced to cloud</div><div style="color:#3a5570;font-size:14px;margin-bottom:40px">${p?.label} Phase · Week ${a.week_in_cycle} of 4</div><button class="btn btn-blue" onclick="S.view='ath';S.step='ready';R()" style="max-width:280px;margin:0 auto">Back to Athlete</button></div></div>`;
+  }
+
+  if(v2==='baseline'&&a) return`<div class="page"><div class="topbar"><button class="ibtn" onclick="S.view='ath';R()">←</button><div style="font-weight:800;font-size:18px">Baseline Assessment</div><div style="width:32px"></div></div><div class="scroll"><div class="sec"><div class="card" style="background:#0d2418;border-color:#1E844944;margin-bottom:14px"><div style="color:#1E8449;font-weight:700;font-size:13px;margin-bottom:5px">📋 No Training Without Baseline</div><div style="color:#8899aa;font-size:13px;line-height:1.65">Complete all 6 tests after a full warm-up. Best of 3 each. Honest numbers only.</div></div>${TESTS.map(t2=>{const filled=S.bv[t2.k]&&S.bv[t2.k].toString().trim()!=='';const isOpen=S.openTest===t2.k;return`<div style="background:#071628;border:1px solid ${filled?'#1E844966':'#0e2640'};border-radius:16px;margin-bottom:10px;overflow:hidden"><div style="display:flex;align-items:center;gap:12px;padding:13px 13px 10px"><div style="font-size:24px">${t2.icon}</div><div style="flex:1"><div style="font-weight:800;font-size:16px">${t2.label}</div><div style="color:#6b8fa8;font-size:12px">${t2.unit}</div></div>${filled?'<div style="color:#1E8449;font-size:18px">✓</div>':''}</div><button style="width:100%;background:none;border:none;border-top:1px solid #0e2640;color:#2E75B6;font-size:13px;font-weight:600;padding:9px 14px;text-align:left;cursor:pointer;font-family:inherit" onclick="S.openTest=S.openTest==='${t2.k}'?null:'${t2.k}';R()">${isOpen?'▲ Hide instructions':'▼ How to do this test'}</button>${isOpen?`<div style="margin:0 12px 12px;background:#0a1a2a;border-radius:10px;border:1px solid #1e3a55;padding:12px"><div style="color:#2E75B6;font-weight:700;font-size:12px;margin-bottom:7px">HOW TO PERFORM</div><div style="color:#8899aa;font-size:13px;line-height:1.7;margin-bottom:10px">${t2.how}</div><div style="background:#071628;border-radius:8px;padding:10px 12px"><div style="color:#3a5570;font-size:10px;font-weight:700;letter-spacing:1px;margin-bottom:3px">REFERENCE RANGES</div><div style="color:#c8dff0;font-size:13px">${t2.ref}</div></div></div>`:''}
+<div style="display:flex;align-items:center;gap:10px;padding:0 12px 14px"><input type="number" class="inp ${filled?'ok':''}" placeholder="${t2.ph}" value="${S.bv[t2.k]||''}" oninput="S.bv['${t2.k}']=this.value" style="flex:1;font-size:20px"/><div style="color:${filled?'#1E8449':'#3a5570'};font-size:14px;font-weight:600;min-width:48px;text-align:right">${t2.unit}</div></div></div>`;}).join('')}<div style="height:8px"></div><button class="btn" onclick="saveBaseline()" style="background:${TESTS.every(t2=>S.bv[t2.k]&&S.bv[t2.k].toString().trim()!=='')?'#1E8449':'#0d1f30'};color:${TESTS.every(t2=>S.bv[t2.k]&&S.bv[t2.k].toString().trim()!=='')?'#fff':'#3a5570'};border:${TESTS.every(t2=>S.bv[t2.k]&&S.bv[t2.k].toString().trim()!=='')?'none':'1px solid #1e3a55'};margin-bottom:14px">${TESTS.every(t2=>S.bv[t2.k]&&S.bv[t2.k].toString().trim()!=='')?'✅ Save Baseline & Unlock Training':'Fill All 6 Tests to Continue'}</button></div></div></div>`;
+
+  if(v2==='log'&&a) return`<div class="page"><div class="topbar"><button class="ibtn" onclick="S.view='ath';R()">←</button><div style="font-weight:800;font-size:18px">Session Log</div><div style="color:#3a5570;font-size:12px">${(a.sessions||[]).length}</div></div><div class="scroll"><div class="sec">${(a.sessions||[]).length===0?'<div style="text-align:center;color:#3a5570;padding-top:60px">No sessions yet.</div>':[...(a.sessions||[])].reverse().map(s=>{const sc2=ST[s.state]||ST.flush;return`<div class="card" style="margin-bottom:10px;border-left:3px solid ${sc2.c}"><div style="display:flex;justify-content:space-between;margin-bottom:8px"><div style="font-weight:700;font-size:15px">${s.block}</div><div style="color:#3a5570;font-size:12px">${fmt(s.created_at)}</div></div><div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap"><span class="tag" style="background:#0d1f30;color:#6b8fa8">${s.phase} · Wk ${s.week}</span><span class="tag" style="background:${sc2.bg};color:${sc2.c}">${sc2.l} ${s.score}/6</span>${s.sprint_reps>0?`<span class="tag" style="background:#0d1f30;color:#2E75B6">${s.sprint_reps} reps</span>`:''}</div></div>`;}).join('')}</div></div></div>`;
+
+  if(v2==='settings'&&a) return`<div class="page"><div class="topbar"><button class="ibtn" onclick="S.view='ath';R()">←</button><div style="font-weight:800;font-size:18px">Settings</div><div style="width:32px"></div></div><div class="scroll"><div class="sec"><div class="slbl">TRAINING PHASE</div><div class="card" style="margin-bottom:14px">${PHASES.map(p2=>`<button onclick="updatePhase('${p2.id}')" style="background:${a.phase_id===p2.id?p2.color+'22':'#0d1f30'};border:1px solid ${a.phase_id===p2.id?p2.color:'#1e3a55'};border-radius:10px;padding:12px 14px;color:${a.phase_id===p2.id?p2.color:'#6b8fa8'};text-align:left;cursor:pointer;width:100%;margin-bottom:8px;font-size:14px;font-weight:${a.phase_id===p2.id?700:400};font-family:inherit">${p2.label} · Weeks ${p2.weeks}</button>`).join('')}</div></div></div></div>`;
+
+  if(v2==='report'&&a){const gp=(a.sessions||[]).length?Math.round((a.sessions||[]).filter(s=>s.state==='train').length/(a.sessions||[]).length*100):0;return`<div class="page"><div class="topbar"><button class="ibtn" onclick="S.view='ath';R()">←</button><div style="font-weight:800;font-size:18px">Progress Report</div><button style="background:none;border:none;color:#1E8449;font-size:13px;font-weight:700;cursor:pointer" onclick="shareReport()">Share ↑</button></div><div class="scroll"><div class="sec"><div style="background:${p.color}11;border:1px solid ${p.color}44;border-radius:20px;padding:18px;margin-bottom:14px"><div style="display:flex;justify-content:space-between"><div><div style="font-weight:800;font-size:20px">${a.name}</div><div style="color:#6b8fa8;font-size:13px">${a.sport}${a.age?` · Age ${a.age}`:''}</div></div><div style="text-align:right"><div style="color:${p.color};font-weight:800;font-size:16px">${p.label}</div><div style="color:#3a5570;font-size:12px">Session ${a.phase_week}</div></div></div><div class="g3" style="margin-top:14px;gap:8px">${[{l:'Sessions',v3:(a.sessions||[]).length},{l:'Green Days',v3:gp+'%'},{l:'React Lvl',v3:a.reactive_level||1}].map(({l,v3})=>`<div style="background:#00000022;border-radius:10px;padding:8px;text-align:center"><div style="color:#ffffff66;font-size:10px;margin-bottom:2px">${l}</div><div style="font-weight:800;font-size:16px;color:#fff">${v3}</div></div>`).join('')}</div></div>
+<div class="slbl">BASELINE → CURRENT</div>${['sprint10m','broadJump','vertJump','chinUps','reactAgility'].map((k,i)=>{const lbls=['10m Sprint','Broad Jump','Vertical','Chin-Ups','React Agility'];const units=['sec','cm','in','reps','sec'];const low=[true,false,false,false,true];const base=parseFloat((a.baselines||{})[k]);const vs=(a.sessions||[]).map(s=>parseFloat(s.vals?.[k])).filter(v3=>!isNaN(v3));const cur=vs[vs.length-1];if(isNaN(base)&&cur==null)return'';const chg=(!isNaN(base)&&cur!=null)?((cur-base)/base*100).toFixed(1):null;const imp=chg&&(low[i]?parseFloat(chg)<0:parseFloat(chg)>0);return`<div class="card" style="margin-bottom:8px;border-left:3px solid ${imp?'#1E8449':chg?'#C0392B':'#0e2640'}"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div style="font-weight:700;font-size:14px">${lbls[i]}</div>${chg?`<div style="color:${imp?'#1E8449':'#C0392B'};font-weight:700;font-size:13px">${imp?'▲':'▼'} ${Math.abs(chg)}%</div>`:''}</div><div class="g2" style="gap:8px">${[{l:'Baseline',v3:!isNaN(base)?base:null},{l:'Current',v3:cur}].map(({l,v3})=>`<div style="background:#0a1a2a;border-radius:8px;padding:8px;text-align:center"><div style="color:#3a5570;font-size:10px;margin-bottom:2px">${l}</div><div style="font-weight:700;font-size:16px;color:#c8dff0">${v3!=null?v3:'—'}<span style="color:#3a5570;font-size:11px;font-weight:400">${v3!=null?' '+units[i]:''}</span></div></div>`).join('')}</div></div>`;}).join('')}
+<div class="slbl" style="margin-top:4px">READINESS HISTORY</div><div class="card" style="margin-bottom:12px">${(a.sessions||[]).slice(-20).map(s=>{const sc2=ST[s.state]||ST.flush;return`<span class="tile" style="background:${sc2.bg};border-color:${sc2.c};color:${sc2.c}">${s.score}</span>`;}).join('')||'<div style="color:#3a5570;font-size:13px">No sessions yet.</div>'}</div>
+<button class="btn btn-green" style="margin-bottom:10px" onclick="S.view='aiNarr';S.aiResult=null;R()">🤖 Generate AI Parent Narrative</button>
+<div style="background:#030c18;border-radius:12px;padding:10px 14px;border:1px solid #0e2640"><div style="color:#3a5570;font-size:11px">${cp?.org_name} · Coach ${cp?.name} · Symphony of Speed v21.0 · ${new Date().toLocaleDateString()}</div></div></div></div></div>`;}
+
+  if(v2==='aiNarr'&&a) return`<div class="page"><div class="topbar"><button class="ibtn" onclick="S.view='report';R()">←</button><div style="font-weight:800;font-size:18px">AI Parent Narrative</div><div style="width:32px"></div></div><div class="scroll"><div class="sec"><div class="card" style="background:#0d2418;border-color:#1E844944;margin-bottom:14px"><div style="color:#1E8449;font-weight:700;font-size:13px;margin-bottom:5px">🤖 Plain-English Parent Report</div><div style="color:#8899aa;font-size:13px;line-height:1.6">AI writes 3 paragraphs parents actually read — not a data table.</div></div><button class="btn btn-green" style="margin-bottom:14px" onclick="genAINarr()" ${S.aiLoading?'disabled':''}>${S.aiLoading?'<span class="spin"></span> Writing...':'🤖 Generate Parent Narrative'}</button>${S.aiResult?`<div class="card" style="border-color:#1E844944;background:#030f1e"><div style="color:#1E8449;font-weight:700;font-size:13px;margin-bottom:12px">Progress Report — ${a.name}</div><div style="color:#c8dff0;font-size:14px;line-height:1.9">${S.aiResult}</div><div style="height:14px"></div><button class="btn btn-green" onclick="shareText('${a.name} Progress Report',S.aiResult)">Share with Parent ↑</button></div>`:''}</div></div></div>`;
+
+  if(v2==='ai'&&a) return`<div class="page"><div class="topbar"><button class="ibtn" onclick="S.view='ath';R()">←</button><div style="font-weight:800;font-size:18px">AI Session Builder</div><div style="width:32px"></div></div><div class="scroll"><div class="sec"><div class="card" style="background:#0d2418;border-color:#1E844944;margin-bottom:14px"><div style="color:#1E8449;font-weight:700;font-size:13px;margin-bottom:5px">🤖 Powered by Claude AI</div><div style="color:#8899aa;font-size:13px;line-height:1.6">Describe what's happening with ${a.name} today. The AI builds a custom session.</div></div><div class="lbl">Tell me about today</div><textarea class="inp" id="aiTA" placeholder="e.g. Tough game last night, left knee sore. 40 min available. Focus on acceleration." oninput="S.aiPrompt=this.value" style="min-height:110px;resize:vertical;font-size:14px;font-weight:400;margin-bottom:12px">${S.aiPrompt||''}</textarea><div class="slbl" style="margin-bottom:8px">QUICK PROMPTS</div><div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">${['Post-game recovery 30 min','Full GREEN max velocity','Athlete feeling sluggish','Pre-competition tune-up','Decel mechanics priority'].map(p3=>`<button onclick="S.aiPrompt='${p3}';document.getElementById('aiTA').value='${p3}'" style="background:#0d1f30;color:#2E75B6;border:1px solid #2E75B644;border-radius:10px;padding:6px 12px;cursor:pointer;font-size:12px;font-family:inherit">${p3}</button>`).join('')}</div><button class="btn btn-blue" style="margin-bottom:14px" onclick="genAI()" ${S.aiLoading?'disabled':''}>${S.aiLoading?'<span class="spin"></span> Building...':'🤖 Generate Custom Session'}</button>${S.aiResult?`<div class="card" style="border-color:#2E75B644;background:#030f1e"><div style="color:#2E75B6;font-weight:700;font-size:13px;margin-bottom:12px">🤖 Custom Session for ${a.name}</div><div style="color:#c8dff0;font-size:13px;line-height:1.8;white-space:pre-wrap">${S.aiResult}</div><div style="height:12px"></div><button class="btn btn-ghost" style="font-size:13px" onclick="shareText('Session — ${a.name}',S.aiResult)">Share ↑</button></div>`:''}</div></div></div>`;
+
+  if(v2==='parent'&&a){const last=(a.sessions||[])[a.sessions.length-1];const sc2=last?ST[last.state]:null;return`<div class="page"><div class="topbar" style="justify-content:space-between"><div style="display:flex;align-items:center;gap:8px"><div style="width:10px;height:10px;border-radius:50%;background:${cp?.org_color||'#2E75B6'}"></div><div style="font-weight:800;font-size:16px;color:${cp?.org_color||'#2E75B6'}">${cp?.org_name}</div></div><button class="ibtn" onclick="S.view='ath';R()">✕</button></div><div class="scroll"><div class="sec"><div style="background:${p.color}11;border:1px solid ${p.color}33;border-radius:20px;padding:20px;text-align:center;margin-bottom:14px"><div style="width:60px;height:60px;border-radius:50%;background:${p.color}33;border:2px solid ${p.color};display:flex;align-items:center;justify-content:center;margin:0 auto 10px;font-size:26px;font-weight:800;color:${p.color}">${a.name.charAt(0)}</div><div style="font-weight:800;font-size:22px">${a.name}</div><div style="color:#6b8fa8;font-size:13px;margin-top:2px">${a.sport}${a.age?` · Age ${a.age}`:''}</div><div style="color:${p.color};font-weight:700;font-size:13px;margin-top:6px">${p.label} Phase · Session ${a.phase_week}</div></div>${sc2?`<div style="background:${sc2.bg};border:2px solid ${sc2.c};border-radius:16px;padding:16px;text-align:center;margin-bottom:14px"><div style="font-size:28px">${sc2.e}</div><div style="color:${sc2.c};font-weight:800;font-size:20px;margin-top:6px">Last Session: ${sc2.l}</div><div style="color:#8899aa;font-size:13px;margin-top:4px">${last.block} · Score ${last.score}/6</div><div style="color:#3a5570;font-size:12px;margin-top:2px">${new Date(last.created_at).toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'})}</div></div>`:'<div class="card" style="text-align:center;color:#3a5570;padding:20px">No sessions yet.</div>'}<div class="g2" style="margin-bottom:14px">${[{l:'Sessions',v3:(a.sessions||[]).length,i:'📅'},{l:'Phase Week',v3:a.week_in_cycle+'/4',i:'📈'},{l:'Green Days',v3:(a.sessions||[]).filter(s=>s.state==='train').length,i:'🟢'},{l:'Baseline',v3:a.baseline_done?'Done':'Needed',i:'✅'}].map(({l,v3,i})=>`<div style="background:#071628;border-radius:14px;padding:13px;border:1px solid #0e2640;text-align:center"><div style="font-size:18px;margin-bottom:4px">${i}</div><div style="font-weight:800;font-size:18px">${v3}</div><div style="color:#3a5570;font-size:11px;margin-top:2px">${l}</div></div>`).join('')}</div>${(a.coachObs||[]).length>0?`<div class="card" style="border-color:#2E75B644"><div style="color:#2E75B6;font-weight:700;font-size:12px;margin-bottom:6px">📋 Latest Coach Note</div><div style="color:#c8dff0;font-size:13px;line-height:1.6">${(a.coachObs||[])[(a.coachObs||[]).length-1]?.note}</div></div>`:''}<div style="text-align:center;color:#3a5570;font-size:11px;margin-top:16px">Powered by Symphony of Speed v21.0 · ${cp?.org_name}</div></div></div></div>`;}
+
+  if(v2==='coach'){const all2=S.teams.flatMap(t2=>(t2.athletes||[]));return`<div class="page"><div class="topbar" style="justify-content:center"><div style="text-align:center"><div style="color:#2E75B6;font-weight:800;font-size:18px">COACH DASHBOARD</div><div style="color:#3a5570;font-size:10px;letter-spacing:1px">${all2.length} ATHLETES · ☁️ CLOUD</div></div></div><div class="scroll"><div class="sec">${S.teams.length===0?'<div class="card" style="text-align:center;color:#3a5570;padding:30px">No teams yet. Go to Teams tab to create one.</div>':S.teams.map(t2=>{if(!(t2.athletes||[]).length)return'';return`<div style="margin-bottom:18px"><div style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><div style="width:10px;height:10px;border-radius:50%;background:${t2.color}"></div><div style="font-weight:800;font-size:16px;color:${t2.color}">${t2.name}</div></div>${(t2.athletes||[]).map(a2=>{const p2=ph(a2.phase_id);const last2=(a2.sessions||[])[(a2.sessions||[]).length-1];const sc2=last2?ST[last2.state]:null;return`<div class="card" style="margin-bottom:8px;cursor:pointer;border-left:3px solid ${t2.color}" onclick="openAth('${t2.id}','${a2.id}')"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px"><div><div style="font-weight:800;font-size:16px">${a2.name}</div><div style="color:#6b8fa8;font-size:12px">${a2.sport}${a2.age?' · Age '+a2.age:''}</div></div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px"><div style="background:${p2.color}22;border:1px solid ${p2.color}55;border-radius:8px;padding:4px 10px"><div style="color:${p2.color};font-weight:700;font-size:11px">${p2.label} Wk ${a2.phase_week}</div></div>${sc2?`<div class="tag" style="background:${sc2.bg};color:${sc2.c}">${sc2.e} ${sc2.l} ${last2.score}/6</div>`:''}</div></div>${(a2.sessions||[]).length>0?`<div>${(a2.sessions||[]).slice(-7).map(s=>{const sc3=ST[s.state]||ST.flush;return`<span class="tile" style="width:24px;height:24px;font-size:10px;background:${sc3.bg};border-color:${sc3.c};color:${sc3.c}">${s.score}</span>`;}).join('')}</div>`:''}</div>`;}).join('')}</div>`;}).join('')}</div></div>${navbar('coach')}</div>`;}
+
+  if(v2==='profile') return`<div class="page"><div class="topbar"><button class="ibtn" onclick="S.view='home';R()">←</button><div style="font-weight:800;font-size:18px">Coach Profile</div><div style="width:32px"></div></div><div class="scroll"><div class="sec"><div style="background:${cp?.org_color||'#2E75B6'}22;border:1px solid ${cp?.org_color||'#2E75B6'}44;border-radius:20px;padding:24px;text-align:center;margin-bottom:16px"><div style="font-size:48px;margin-bottom:10px">🏃</div><div style="color:${cp?.org_color||'#2E75B6'};font-weight:800;font-size:22px">${cp?.org_name||''}</div><div style="color:#3a5570;font-size:12px;margin-top:8px">Coach: ${cp?.name||''} · ☁️ Cloud sync active</div></div><div class="slbl">ACCOUNT</div><div class="card"><div style="color:#6b8fa8;font-size:13px;margin-bottom:12px">Signed in as ${S.user?.email||''}</div><button class="btn btn-red" style="width:auto;padding:10px 20px;font-size:14px" onclick="if(confirm('Sign out?'))doSignOut()">Sign Out</button></div></div></div></div>`;
+
+  return`<div style="padding:40px;color:#3a5570">Loading...</div>`;
+}
+
+function renderModal(){
+  const m=S.modal;
+  if(!m)return'';
+  
+  let html='';
+  if(m==='addTeam') html=`<div class="mbar"></div><div style="font-weight:800;font-size:20px;margin-bottom:16px">Create Team</div><div class="lbl">Team Name *</div><input class="inp" id="nt_name" placeholder="e.g. Eagles" style="margin-bottom:16px" autofocus/><div class="lbl" style="margin-bottom:10px">Color</div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px">${COLORS.map(c=>`<div class="dot ${S.newTeamColor===c?'sel':''}" onclick="S.newTeamColor='${c}';refreshModal()" style="background:${c}"></div>`).join('')}</div><button class="btn btn-blue" style="margin-bottom:10px" onclick="createTeam()">Create Team</button><button class="btn btn-ghost" onclick="closeModal()">Cancel</button>`;
+  
+  if(m==='addAth') html=`<div class="mbar"></div><div style="font-weight:800;font-size:20px;margin-bottom:16px">Add Athlete</div><div class="lbl">Full Name *</div><input class="inp" id="na_name" placeholder="e.g. Jordan Smith" style="margin-bottom:10px" autofocus/><div class="g2" style="margin-bottom:10px"><div><div class="lbl">Age</div><input class="inp" id="na_age" type="number" placeholder="14"/></div><div><div class="lbl">Position</div><input class="inp" id="na_pos" placeholder="Guard"/></div></div><div class="lbl" style="margin-bottom:8px">Sex</div><div class="g2" style="margin-bottom:10px">${['male','female'].map(s=>`<button onclick="S.newAthSex='${s}';refreshModal()" style="background:${S.newAthSex===s?'#2E75B6':'#0d1f30'};color:${S.newAthSex===s?'#fff':'#6b8fa8'};border:1px solid ${S.newAthSex===s?'#2E75B6':'#1e3a55'};border-radius:10px;padding:10px;cursor:pointer;font-weight:700;font-size:14px;font-family:inherit">${s==='male'?'👦 Male':'👧 Female'}</button>`).join('')}</div><div class="lbl" style="margin-bottom:8px">Sport</div><div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px">${SPORTS.map(s=>`<button onclick="S.newAthSport='${s}';refreshModal()" style="background:${S.newAthSport===s?'#2E75B6':'#0d1f30'};color:${S.newAthSport===s?'#fff':'#6b8fa8'};border:1px solid ${S.newAthSport===s?'#2E75B6':'#1e3a55'};border-radius:8px;padding:6px 12px;cursor:pointer;font-size:13px;font-family:inherit">${s}</button>`).join('')}</div><button class="btn btn-blue" style="margin-bottom:10px" onclick="createAth()">Add Athlete</button><button class="btn btn-ghost" onclick="closeModal()">Cancel</button>`;
+
+  if(m==='injury') html=`<div class="mbar"></div><div style="font-weight:800;font-size:20px;margin-bottom:4px;color:#C0392B">🚨 Report Injury</div><div style="color:#8899aa;font-size:13px;margin-bottom:16px">Log this now.</div><div class="lbl">Body Part *</div><input class="inp" id="inj_body" placeholder="e.g. Left hamstring" style="margin-bottom:14px"/><div class="lbl">Pain Level</div><input type="range" id="inj_pain" min="1" max="10" value="5" style="width:100%;margin-bottom:6px;accent-color:#C0392B"/><div style="display:flex;justify-content:space-between;color:#3a5570;font-size:11px;margin-bottom:14px"><span>1 Mild</span><span>5 Moderate</span><span>10 Severe</span></div><div class="lbl">Description</div><textarea class="inp" id="inj_notes" placeholder="When did it start?" style="min-height:70px;resize:vertical;font-size:14px;font-weight:400;margin-bottom:14px"></textarea><button class="btn btn-red" style="margin-bottom:10px" onclick="logInjury()">Log Injury</button><button class="btn btn-ghost" onclick="closeModal()">Cancel</button>`;
+
+  if(!html) return '';
+
+  // Use a separate modal container outside #app
+  setTimeout(()=>{
+    let mc=document.getElementById('modalContainer');
+    if(!mc){mc=document.createElement('div');mc.id='modalContainer';mc.style.cssText='position:fixed;inset:0;background:#000c;z-index:1000;display:flex;align-items:flex-end;justify-content:center';document.body.appendChild(mc);}
+    mc.onclick=(e)=>{if(e.target===mc)closeModal();};
+    mc.innerHTML=`<div style="background:#071628;border-radius:20px 20px 0 0;border-top:1px solid #0e2640;width:100%;max-width:480px;padding:20px 16px 40px;max-height:88vh;overflow-y:auto;font-family:'DM Sans',sans-serif;color:#c8dff0">${html}</div>`;
+    mc.style.display='flex';
+  },10);
+  return '';
+}
+
+function refreshModal(){
+  const m=S.modal;
+  closeModal(true);
+  S.modal=m;
+  renderModal();
+}
+
+function closeModal(silent){
+  S.modal=null;
+  const mc=document.getElementById('modalContainer');
+  if(mc)mc.remove();
+  if(!silent)R();
+}
+
+// ── NAV BAR ───────────────────────────────────────────────────────────────────
+function navbar(active){
+  return`<div class="navbar">${[{id:'home',icon:'🏠',l:'Teams'},{id:'coach',icon:'👁',l:'Coach'},{id:'profile',icon:'👤',l:'Profile'}].map(({id,icon,l})=>`<button class="nbtn" onclick="S.view='${id}';R()"><div style="font-size:20px">${icon}</div><div style="font-size:9px;font-weight:700;color:${active===id?'#2E75B6':'#3a5570'}">${l}</div>${active===id?'<div style="width:16px;height:2px;background:#2E75B6;border-radius:2px"></div>':''}</button>`).join('')}</div>`;
+}
+
+// ── EXTRA HANDLERS ────────────────────────────────────────────────────────────
+function openAth(tid,aid){
+  S.teamId=tid;S.athId=aid;
+  const a2=S.teams.find(t=>t.id===tid)?.athletes?.find(a=>a.id===aid);
+  if(a2){S.bv={...(a2.baselines||{})};}
+  S.sc={sleep:null,legs:null,knees:null};
+  S.lv={sprint10m:'',broadJump:'',vertJump:'',chinUps:'',bodyweight:'',reactAgility:'',notes:''};
+  S.sprints=0;S.coachNote='';S.step='ready';S.view='ath';R();
+}
+
+function startSess(){
+  S.sc={sleep:null,legs:null,knees:null};
+  S.lv={sprint10m:'',broadJump:'',vertJump:'',chinUps:'',bodyweight:'',reactAgility:'',notes:''};
+  S.sprints=0;S.coachNote='';S.step='ready';S.view='session';R();
+}
+
+function shareReport(){
+  const a2=ath();if(!a2)return;
+  const text=`${S.coach?.org_name} — Report\n${a2.name} · ${a2.sport}${a2.age?' · Age '+a2.age:''}\n${new Date().toLocaleDateString()}\n\nPhase: ${ph(a2.phase_id)?.label} · Session ${a2.phase_week}\nSessions: ${(a2.sessions||[]).length}`;
+  shareText(a2.name+' Report',text);
+}
+
+async function genAINarr(){
+  const a2=ath();if(!a2)return;
+  if((a2.sessions||[]).length<2)return alert('Need at least 2 sessions logged.');
+  const p2=ph(a2.phase_id);
+  const gp=Math.round((a2.sessions||[]).filter(s=>s.state==='train').length/(a2.sessions||[]).length*100);
+  S.aiLoading=true;S.aiResult=null;R();
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:800,messages:[{role:'user',content:`Write a 3-paragraph progress report for a parent. Warm, clear, jargon-free.\n\nCOACH: ${S.coach?.name} at ${S.coach?.org_name}\nATHLETE: ${a2.name}, Age ${a2.age||'?'}, ${a2.sport}\nPHASE: ${p2?.label}, Session ${a2.phase_week}\nSESSIONS: ${(a2.sessions||[]).length} total, ${gp}% green days\n\nParagraph 1: Overall progress, what we've been working on.\nParagraph 2: What's improving, what's challenging, next focus.\nParagraph 3: What parents can support at home.\n\nEnd with one coach recommendation. No bullet points. Use athlete's first name.`}]})});
+    const d=await res.json();
+    S.aiResult=d.content?.map(c=>c.text||'').join('')||'Could not generate.';
+  }catch(e){S.aiResult='Error connecting to AI.';}
+  S.aiLoading=false;R();
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+(async()=>{
+  // Timeout — if Supabase doesn't respond in 8 seconds show login
+  const timeout = setTimeout(()=>{
+    if(S.view==='loading'){S.view='login';R();}
+  }, 8000);
+
+  try {
+    const{data:{session}}=await sb.auth.getSession();
+    clearTimeout(timeout);
+    if(session?.user){S.user=session.user;await loadAll();}
+    else{S.view='login';R();}
+  } catch(e) {
+    clearTimeout(timeout);
+    S.view='login';R();
+  }
+
+  sb.auth.onAuthStateChange(async(event,session)=>{
+    if(event==='SIGNED_IN'&&session?.user){S.user=session.user;await loadAll();}
+    else if(event==='SIGNED_OUT'){S.user=null;S.coach=null;S.teams=[];S.view='login';R();}
+  });
+})();
+</script>
+</body>
+</html>
+ 
