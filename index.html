@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+  <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -533,27 +533,18 @@ async function genAINarr(){
 }
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
-(async()=>{
-  // Timeout — if Supabase doesn't respond in 8 seconds show login
-  const timeout = setTimeout(()=>{
-    if(S.view==='loading'){S.view='login';R();}
-  }, 8000);
+// Show login immediately — don't wait for Supabase
+S.view='login';R();
 
-  try {
-    const{data:{session}}=await sb.auth.getSession();
-    clearTimeout(timeout);
-    if(session?.user){S.user=session.user;await loadAll();}
-    else{S.view='login';R();}
-  } catch(e) {
-    clearTimeout(timeout);
-    S.view='login';R();
-  }
+// Then check for existing session in background
+sb.auth.getSession().then(({data:{session}})=>{
+  if(session?.user){S.user=session.user;loadAll();}
+}).catch(()=>{});
 
-  sb.auth.onAuthStateChange(async(event,session)=>{
-    if(event==='SIGNED_IN'&&session?.user){S.user=session.user;await loadAll();}
-    else if(event==='SIGNED_OUT'){S.user=null;S.coach=null;S.teams=[];S.view='login';R();}
-  });
-})();
+sb.auth.onAuthStateChange(async(event,session)=>{
+  if(event==='SIGNED_IN'&&session?.user){S.user=session.user;await loadAll();}
+  else if(event==='SIGNED_OUT'){S.user=null;S.coach=null;S.teams=[];S.view='login';R();}
+});
 </script>
 </body>
 </html>
